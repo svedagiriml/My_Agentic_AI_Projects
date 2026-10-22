@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoanAssist</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --muted:#667085; --accent:#0b6e4f; --line:#e4e7ec; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12151b; --card:#1b2029; --ink:#e7eaf0; --muted:#98a2b3; --accent:#3fbf8f; --line:#2a313d; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.55 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 120px; }
+  h1 { font-size:20px; margin:0 0 4px; } p.sub { color:var(--muted); margin:0 0 20px; }
+  .msg { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:10px 0; white-space:pre-wrap; }
+  .user { border-left:3px solid var(--accent); }
+  .cites { color:var(--muted); font-size:12.5px; margin-top:8px; }
+  form { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--line); padding:12px 16px; }
+  .row { max-width:760px; margin:0 auto; display:flex; gap:8px; }
+  input { flex:1; padding:11px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font:inherit; }
+  button { padding:0 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; font:inherit; cursor:pointer; }
+</style>
+</head>
+<body>
+<main id="log">
+  <h1>LoanAssist</h1>
+  <p class="sub">Ask about home, personal and car loans: rates, fees, prepayment, documents, RBI rules.</p>
+</main>
+<form id="f"><div class="row"><input id="q" placeholder="e.g. What are the foreclosure charges on a personal loan?" autocomplete="off"><button>Ask</button></div></form>
+<script>
+const log = document.getElementById('log'), form = document.getElementById('f'), q = document.getElementById('q');
+const history = [];
+function add(cls, text) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; log.appendChild(d); d.scrollIntoView(); return d; }
+form.onsubmit = async (e) => {
+  e.preventDefault(); const query = q.value.trim(); if (!query) return; q.value = '';
+  add('user', query); const out = add('bot', '');
+  const res = await fetch('/v1/chat', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ query, history: history.slice(-6), stream: true }) });
+  const reader = res.body.getReader(), dec = new TextDecoder(); let buf = '', answer = '';
+  while (true) {
+    const { value, done } = await reader.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i; while ((i = buf.indexOf('\n\n')) >= 0) {
+      const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+      const ev = (raw.match(/^event: (.*)$/m) || [])[1];
+      const data = raw.split('\n').filter(l => l.startsWith('data: ')).map(l => l.slice(6)).join('\n');
+      if (!data) continue; const d = JSON.parse(data);
+      if (ev === 'token') { if (d.replace) answer = ''; answer += d.t; out.textContent = answer; }
+      else if (ev === 'citations' && d.citations.length) {
+        const c = document.createElement('div'); c.className = 'cites';
+        c.textContent = 'Sources: ' + [...new Set(d.citations.map(x => x.source_file + (x.page ? ' p.' + x.page : '')))].join(' · ');
+        out.appendChild(c);
+      } else if (ev === 'error') { out.textContent = d.message; }
+    }
+  }
+  history.push({ role:'user', content: query }, { role:'assistant', content: answer.slice(0, 3900) });
+};
+</script>
+</body>
+</html>

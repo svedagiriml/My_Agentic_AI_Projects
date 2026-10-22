@@ -1,0 +1,2 @@
+# optional: real sentence embeddings (EMBEDDING_BACKEND=sentence_transformers)
+sentence-transformers>=3.0

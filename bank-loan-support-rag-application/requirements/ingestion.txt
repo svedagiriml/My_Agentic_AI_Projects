@@ -1,0 +1,5 @@
+-r base.txt
+pymupdf4llm>=0.0.17,<1   # a contentless 2.0 placeholder exists on PyPI mirrors; stay on 0.x
+sentence-transformers>=3.0
+pinecone>=5.4
+# optional MIT-licensed converter: pip install docling  (PDF_CONVERTER=docling)

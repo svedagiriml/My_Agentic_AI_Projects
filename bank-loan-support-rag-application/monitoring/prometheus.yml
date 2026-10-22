@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: bank-rag
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["gateway:8080", "retriever:8080", "generator:8080", "guardrail:8080"]

@@ -1,0 +1,6 @@
+global: {scrape_interval: 15s}
+scrape_configs:
+  - job_name: loanflow
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["supervisor:8080", "supervisor-worker:8080", "agent-fetch-document:8080", "agent-validate-document:8080", "agent-check-credit:8080", "agent-assess-risk:8080", "agent-check-compliance:8080", "agent-compile-report:8080", "agent-compile-rejection:8080", "mcp-document:8080", "mcp-credit-bureau:8080", "mcp-risk-engine:8080", "mcp-compliance:8080", "mcp-reporting:8080"]

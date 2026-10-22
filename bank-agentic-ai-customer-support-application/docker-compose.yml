@@ -1,0 +1,119 @@
+# Local production-like stack: 1 supervisor + 8 sub-agents + 8 MCP servers + memory worker
+# + Postgres/pgvector + Redis Stack + Ollama (+ optional vLLM GPU profile) + Prometheus/Grafana.
+#   cp .env.example .env && docker compose up -d --build
+#   docker compose -f docker-compose.observability.yml up -d     # Langfuse v3 (optional)
+name: horizon-agentic
+
+x-app: &app
+  build: { context: ., dockerfile: docker/Dockerfile }
+  image: horizon/bank-agentic:local
+  env_file: .env
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  networks: [bank]
+
+x-agent: &agent
+  <<: *app
+  environment: &agent-env
+    SERVICE: agent
+
+x-mcp: &mcp
+  <<: *app
+  environment: &mcp-env
+    SERVICE: mcp
+
+services:
+  # ------------------------------------------------------------ data layer --
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment: { POSTGRES_USER: bank, POSTGRES_PASSWORD: bank, POSTGRES_DB: bank }
+    volumes: [pgdata:/var/lib/postgresql/data, ./db/init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U bank"], interval: 5s, retries: 20 }
+    ports: ["5432:5432"]
+    networks: [bank]
+
+  redis:
+    image: redis/redis-stack-server:7.4.0-v1     # RediSearch vector index for the semantic cache
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 20 }
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    networks: [bank]
+
+  # ------------------------------------------------------------- free LLMs --
+  ollama:
+    image: ollama/ollama:latest
+    environment: { OLLAMA_KEEP_ALIVE: 30m, OLLAMA_NUM_PARALLEL: "4", OLLAMA_FLASH_ATTENTION: "1" }
+    volumes: [ollama:/root/.ollama]
+    ports: ["11434:11434"]
+    networks: [bank]
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on: [ollama]
+    environment: { OLLAMA_HOST: "http://ollama:11434" }
+    entrypoint: ["/bin/sh", "-c", "ollama pull qwen2.5:7b-instruct && ollama pull nomic-embed-text"]
+    restart: "no"
+    networks: [bank]
+
+  vllm:                     # optional: docker compose --profile gpu up vllm
+    profiles: [gpu]
+    image: vllm/vllm-openai:latest
+    command: ["--model", "Qwen/Qwen2.5-7B-Instruct", "--enable-prefix-caching", "--max-model-len", "8192",
+              "--gpu-memory-utilization", "0.90", "--enable-auto-tool-choice", "--tool-call-parser", "hermes"]
+    deploy: { resources: { reservations: { devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }] } } }
+    ports: ["8001:8000"]
+    networks: [bank]
+
+  # ------------------------------------------------------------ MCP servers --
+  mcp-account:     { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: account } }
+  mcp-payments:    { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: payments } }
+  mcp-cards:       { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: cards } }
+  mcp-fraud:       { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: fraud } }
+  mcp-loans:       { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: loans } }
+  mcp-investments: { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: investments } }
+  mcp-knowledge:   { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: knowledge } }
+  mcp-compliance:  { <<: *mcp, environment: { <<: *mcp-env, MCP_DOMAIN: compliance } }
+
+  # ------------------------------------------------------ ReAct sub-agents --
+  agent-account:     { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: account } }
+  agent-payments:    { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: payments } }
+  agent-cards:       { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: cards } }
+  agent-fraud:       { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: fraud } }
+  agent-loans:       { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: loans } }
+  agent-investments: { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: investments } }
+  agent-knowledge:   { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: knowledge } }
+  agent-compliance:  { <<: *agent, environment: { <<: *agent-env, AGENT_NAME: compliance } }
+
+  # ------------------------------------------------------ supervisor (API) --
+  supervisor:
+    <<: *app
+    environment: { SERVICE: supervisor }
+    ports: ["8000:8080"]
+
+  memory-worker:
+    <<: *app
+    environment: { SERVICE: memory-worker }
+
+  # ------------------------------------------------------------ monitoring --
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes: [./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro,
+              ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro]
+    ports: ["9090:9090"]
+    networks: [bank]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment: { GF_AUTH_ANONYMOUS_ENABLED: "true", GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer }
+    volumes: [./monitoring/grafana:/etc/grafana/provisioning:ro]
+    ports: ["3001:3000"]
+    networks: [bank]
+
+volumes: { pgdata: {}, redisdata: {}, ollama: {} }
+networks: { bank: { name: bank } }

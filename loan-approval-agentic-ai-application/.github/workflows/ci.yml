@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6390:6379"]
+    env:
+      REDIS_TEST_URL: redis://localhost:6390/15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check src eval tests scripts
+      - run: pytest -q                 # unit + integration (incl. real HTTP microservices + real Redis)
+      - run: python -m eval.run_eval   # golden-dataset quality gate (fails the build on regression)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: eval-report, path: eval/reports/}

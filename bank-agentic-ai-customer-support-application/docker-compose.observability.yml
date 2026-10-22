@@ -1,0 +1,66 @@
+# Self-hosted Langfuse v3 (open source) for tracing. Joins the "bank" network created by
+# docker-compose.yml. UI: http://localhost:3000  (login: admin@horizon.local / langfuse-admin)
+# The INIT_* variables create an org/project with the keys used in .env.example.
+name: horizon-observability
+
+x-lf-env: &lf-env
+  DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+  SALT: change-me-salt
+  ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+  CLICKHOUSE_URL: http://clickhouse:8123
+  CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+  CLICKHOUSE_USER: clickhouse
+  CLICKHOUSE_PASSWORD: clickhouse
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_HOST: langfuse-redis
+  REDIS_PORT: "6379"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  NEXTAUTH_URL: http://localhost:3000
+  NEXTAUTH_SECRET: change-me-nextauth
+  LANGFUSE_INIT_ORG_ID: horizon
+  LANGFUSE_INIT_PROJECT_ID: bank-support
+  LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-local-dev
+  LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-local-dev
+  LANGFUSE_INIT_USER_EMAIL: admin@horizon.local
+  LANGFUSE_INIT_USER_PASSWORD: langfuse-admin
+
+services:
+  langfuse-web:
+    image: langfuse/langfuse:3
+    environment: *lf-env
+    ports: ["3000:3000"]
+    depends_on: [langfuse-db, clickhouse, minio, langfuse-redis]
+    networks: [bank]
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    environment: *lf-env
+    depends_on: [langfuse-db, clickhouse, minio, langfuse-redis]
+    networks: [bank]
+  langfuse-db:
+    image: postgres:16
+    environment: { POSTGRES_USER: langfuse, POSTGRES_PASSWORD: langfuse, POSTGRES_DB: langfuse }
+    volumes: [lfdb:/var/lib/postgresql/data]
+    networks: [bank]
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment: { CLICKHOUSE_DB: default, CLICKHOUSE_USER: clickhouse, CLICKHOUSE_PASSWORD: clickhouse }
+    volumes: [lfch:/var/lib/clickhouse]
+    networks: [bank]
+  minio:
+    image: minio/minio:latest
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server /data'
+    environment: { MINIO_ROOT_USER: minio, MINIO_ROOT_PASSWORD: miniosecret }
+    volumes: [lfminio:/data]
+    networks: [bank]
+  langfuse-redis:
+    image: redis:7
+    networks: [bank]
+
+volumes: { lfdb: {}, lfch: {}, lfminio: {} }
+networks: { bank: { external: true, name: bank } }

@@ -1,0 +1,37 @@
+groups:
+  - name: bank-agentic-slo
+    rules:
+      - alert: HighP95Latency
+        expr: histogram_quantile(0.95, sum by (le) (rate(bank_request_latency_seconds_bucket{route="/v1/chat"}[5m]))) > 12
+        for: 10m
+        labels: { severity: page }
+        annotations: { summary: "p95 chat latency above 12s SLO" }
+      - alert: CircuitOpen
+        expr: max by (name) (bank_circuit_state) == 2
+        for: 2m
+        labels: { severity: page }
+        annotations: { summary: "Circuit {{ $labels.name }} is open" }
+      - alert: InjectionSpike
+        expr: sum(rate(bank_guardrail_events_total{stage="input",reason="prompt_injection"}[10m])) > 0.5
+        for: 5m
+        labels: { severity: ticket }
+        annotations: { summary: "Prompt-injection attempts spiking (possible campaign)" }
+      - alert: HitlBacklog
+        expr: sum(increase(bank_hitl_events_total{event="requested"}[30m])) - sum(increase(bank_hitl_events_total{event=~"approved|rejected"}[30m])) > 20
+        for: 15m
+        labels: { severity: ticket }
+        annotations: { summary: "Human approval queue is growing — staff the HITL console" }
+      - alert: UngroundedFigures
+        expr: sum(rate(bank_guardrail_events_total{reason="ungrounded_figures"}[30m])) > 0.05
+        for: 15m
+        labels: { severity: ticket }
+        annotations: { summary: "Answers contain figures not found in tool outputs (hallucination risk)" }
+      - alert: LLMCostBudget
+        expr: sum(increase(bank_llm_cost_usd_total[1d])) > 50
+        labels: { severity: ticket }
+        annotations: { summary: "Daily (shadow) LLM cost above budget" }
+      - alert: RoutingCacheHitRateLow
+        expr: sum(rate(bank_routing_cache_total{result="hit"}[1h])) / sum(rate(bank_routing_cache_total{result=~"hit|miss"}[1h])) < 0.2
+        for: 1h
+        labels: { severity: info }
+        annotations: { summary: "Semantic routing cache hit rate < 20% — review threshold" }

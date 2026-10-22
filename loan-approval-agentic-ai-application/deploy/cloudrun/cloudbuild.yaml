@@ -1,0 +1,23 @@
+# Cloud Build pipeline: lint -> unit+integration tests -> eval quality gate -> build -> push -> deploy
+#   gcloud builds submit --config deploy/cloudrun/cloudbuild.yaml --substitutions=_REGION=asia-south1
+substitutions:
+  _REGION: asia-south1
+steps:
+  - id: test
+    name: python:3.12-slim
+    entrypoint: bash
+    args: ["-c", "pip install -q -r requirements-dev.txt && ruff check src eval tests && pytest -q -m 'not http' && python -m eval.run_eval"]
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/loanflow/loanflow:$SHORT_SHA", "."]
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/loanflow/loanflow:$SHORT_SHA"]
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    env: ["PROJECT_ID=$PROJECT_ID", "REGION=${_REGION}", "TAG=$SHORT_SHA"]
+    args: ["./deploy/cloudrun/deploy.sh"]
+images: ["${_REGION}-docker.pkg.dev/$PROJECT_ID/loanflow/loanflow:$SHORT_SHA"]
+options: {logging: CLOUD_LOGGING_ONLY}
+timeout: 3600s

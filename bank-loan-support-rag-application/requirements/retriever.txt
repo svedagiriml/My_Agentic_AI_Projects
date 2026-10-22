@@ -1,0 +1,5 @@
+-r base.txt
+# torch is installed from the CPU wheel index in the Dockerfile (keeps the image ~1 GB smaller)
+sentence-transformers>=3.0
+pinecone>=5.4
+rank-bm25>=0.2.2

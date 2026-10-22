@@ -1,0 +1,25 @@
+[project]
+name = "bank-loan-rag-support"
+version = "1.0.0"
+description = "Production-grade RAG customer-support microservices for bank loan products (LangChain, Pinecone, FastAPI, Cloud Run)"
+requires-python = ">=3.11"
+authors = [{ name = "Shivakumar" }]
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+ignore = ["B008", "E501", "B905", "UP042", "ASYNC109"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

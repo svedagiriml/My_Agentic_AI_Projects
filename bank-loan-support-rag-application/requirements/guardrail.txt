@@ -1,0 +1,4 @@
+-r base.txt
+# Optional extras (enable with USE_PRESIDIO / USE_INJECTION_CLASSIFIER):
+#   presidio-analyzer>=2.2 + `python -m spacy download en_core_web_lg`
+#   transformers>=4.44 torch (CPU)

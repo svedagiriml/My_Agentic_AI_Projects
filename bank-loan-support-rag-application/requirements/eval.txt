@@ -1,0 +1,5 @@
+-r generator.txt
+ragas>=0.2.10,<0.4
+langchain-huggingface>=0.1
+sentence-transformers>=3.0
+pandas>=2.2

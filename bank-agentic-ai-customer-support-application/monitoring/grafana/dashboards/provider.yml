@@ -1,0 +1,3 @@
+apiVersion: 1
+providers:
+  - { name: bank, folder: Bank Agentic, type: file, options: { path: /etc/grafana/provisioning/dashboards } }

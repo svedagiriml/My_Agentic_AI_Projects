@@ -1,0 +1,24 @@
+[project]
+name = "bank-agentic-support"
+version = "1.0.0"
+description = "Multi-agent (LangGraph + MCP + FastAPI) customer-support platform for a bank"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["services", "libs/bankcore", "."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "integration: multi-component trajectory tests (in-process, no network)",
+  "live: requires running docker-compose stack and real LLMs",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "BLE"]
+ignore = ["S101", "S105", "S106"]

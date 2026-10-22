@@ -1,0 +1,58 @@
+# Knowledge-base manifest. Every document is a public PDF published by an Indian bank,
+# housing finance company or the Reserve Bank of India. All of them contain tables
+# (fee schedules, LTV grids, charge matrices, KFS formats) which exercise the
+# table-aware chunker.
+#
+# Run:  python scripts/download_pdfs.py          -> downloads into data/pdfs/
+# Bank websites change URLs often; if a link 404s, search the title on the bank's
+# site and update `url` here. The ingestion pipeline only cares about files in data/pdfs/.
+
+documents:
+  - id: sbi_home_loan_mitc
+    title: "SBI Home Loan - Most Important Terms and Conditions (MITC)"
+    product: home_loan
+    issuer: State Bank of India
+    url: https://homeloans.sbi/downloads/Terms-and-Conditions.pdf
+    has_tables: [LTV ratio grid, processing fee slabs, conversion charges]
+
+  - id: muthoot_homefin_mitc
+    title: "Muthoot Homefin (India) Ltd - Housing Loan MITC"
+    product: home_loan
+    issuer: Muthoot Homefin (India) Ltd
+    url: https://www.muthoothomefin.com/public/uploads/MITC/MHIL-MITC.pdf
+    has_tables: [rate-of-interest type matrix, statutory charges, prepayment charges]
+
+  - id: sbi_car_loan_mitc
+    title: "SBI Auto / Car Loan - Most Important Terms and Conditions"
+    product: car_loan
+    issuer: State Bank of India
+    url: https://sbi.co.in/webfiles/uploads/files/1336716430412_CAR_LOAN_MITC_MAY12.pdf
+    has_tables: [processing fee, prepayment charges]
+
+  - id: idbi_personal_loan_soc
+    title: "IDBI Bank - Schedule of Charges, Personal Loan and variants"
+    product: personal_loan
+    issuer: IDBI Bank
+    url: https://www.idbi.bank.in/pdf/soc/SOC-Personal-Loan.pdf
+    has_tables: [charges grid for loans disbursed on/after 01-Oct-2026]
+
+  - id: bandhan_personal_loan_mitc
+    title: "Bandhan Bank - Personal Loan MITC (18-Jul-2026)"
+    product: personal_loan
+    issuer: Bandhan Bank
+    url: https://www.bandhan.bank.in/sites/default/files/2026-07/Personal-Loan-MITC-18072026.pdf
+    has_tables: [schedule of charges]
+
+  - id: bandhan_personal_loan_soc
+    title: "Bandhan Bank - Personal Loan Schedule of Charges (July 2026)"
+    product: personal_loan
+    issuer: Bandhan Bank
+    url: https://bandhan.bank.in/sites/default/files/2026-07/Personal-Loan-Schedule-of-Charges-July-2026.pdf
+    has_tables: [description vs charge table]
+
+  - id: rbi_kfs_circular_2024
+    title: "RBI Circular - Key Facts Statement (KFS) for Loans & Advances (15-Apr-2024)"
+    product: general
+    issuer: Reserve Bank of India
+    url: https://website.rbi.org.in/documents/87730/39710850/Circular+KFS_180424_Final_For_Website.pdf
+    has_tables: [Annex A KFS format, Annex B APR illustration, Annex C repayment schedule]

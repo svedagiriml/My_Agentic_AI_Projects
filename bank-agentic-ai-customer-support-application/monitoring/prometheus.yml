@@ -1,0 +1,16 @@
+global: { scrape_interval: 15s, evaluation_interval: 15s }
+rule_files: [/etc/prometheus/alerts.yml]
+scrape_configs:
+  - job_name: supervisor
+    metrics_path: /metrics
+    static_configs: [{ targets: ["supervisor:8080"] }]
+  - job_name: agents
+    metrics_path: /metrics
+    static_configs:
+      - targets: [agent-account:8080, agent-payments:8080, agent-cards:8080, agent-fraud:8080,
+                  agent-loans:8080, agent-investments:8080, agent-knowledge:8080, agent-compliance:8080]
+  - job_name: mcp
+    metrics_path: /metrics
+    static_configs:
+      - targets: [mcp-account:8080, mcp-payments:8080, mcp-cards:8080, mcp-fraud:8080,
+                  mcp-loans:8080, mcp-investments:8080, mcp-knowledge:8080, mcp-compliance:8080]
