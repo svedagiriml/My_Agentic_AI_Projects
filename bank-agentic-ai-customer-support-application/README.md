@@ -29,6 +29,10 @@ through **FastAPI** and deployed as **separate Cloud Run microservices**. Every 
 
 ## 1. How a request flows
 
+> **Full walkthrough:** [docs/FLOW.md](docs/FLOW.md) traces a query from the UI to the reply step by step,
+> naming the Python file and function that runs at every step, and covers the cache-hit, multi-intent,
+> human-in-the-loop, blocked, degraded, RAG and compliance-rewrite flows.
+
 ```mermaid
 flowchart LR
     C([Customer]) -->|JWT, POST /v1/chat| API[Supervisor API<br/>rate limit · PII redaction]
@@ -123,7 +127,7 @@ bank-agentic-support/
 ├── docker/ docker-compose*.yml      local stack (+ Langfuse v3, Prometheus, Grafana, Ollama, vLLM)
 ├── deploy/cloudrun/                 gcloud deploy script, Pub/Sub setup, Knative template
 ├── monitoring/                      Prometheus scrape config, SLO alerts, Grafana dashboard
-└── docs/                            architecture diagram (+ generator script)
+└── docs/                            FLOW.md walkthrough · architecture diagram (+ generator script)
 ```
 
 ---
