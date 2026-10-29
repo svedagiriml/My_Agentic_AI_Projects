@@ -32,6 +32,9 @@ through **FastAPI** and deployed as **separate Cloud Run microservices**. Every 
 > **Full walkthrough:** [docs/FLOW.md](docs/FLOW.md) traces a query from the UI to the reply step by step,
 > naming the Python file and function that runs at every step, and covers the cache-hit, multi-intent,
 > human-in-the-loop, blocked, degraded, RAG and compliance-rewrite flows.
+>
+> **Codebase guide:** [docs/CODEBASE.md](docs/CODEBASE.md) explains every Python file in the project —
+> what it contains, what it does and how it contributes to the multi-agent system.
 
 ```mermaid
 flowchart LR
@@ -127,7 +130,7 @@ bank-agentic-support/
 ├── docker/ docker-compose*.yml      local stack (+ Langfuse v3, Prometheus, Grafana, Ollama, vLLM)
 ├── deploy/cloudrun/                 gcloud deploy script, Pub/Sub setup, Knative template
 ├── monitoring/                      Prometheus scrape config, SLO alerts, Grafana dashboard
-└── docs/                            FLOW.md walkthrough · architecture diagram (+ generator script)
+└── docs/                            FLOW.md walkthrough · CODEBASE.md file guide · architecture diagram (+ generator script)
 ```
 
 ---
